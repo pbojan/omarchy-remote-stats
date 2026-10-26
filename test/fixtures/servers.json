@@ -1,0 +1,173 @@
+{
+  "now": 1792420051000,
+  "servers": [
+    {
+      "name": "web1",
+      "lastPollMs": 1792420051000,
+      "lastOkMs": 1792420051000,
+      "error": null,
+      "snapshot": {
+        "system": {
+          "hostname": "web1"
+        },
+        "cpu": {
+          "total": 12,
+          "cpucore": 8
+        },
+        "load": {
+          "min1": 0.42,
+          "min5": 0.38,
+          "min15": 0.31,
+          "cpucore": 8
+        },
+        "mem": {
+          "total": 16750372454,
+          "used": 5476083302,
+          "available": 11274289152,
+          "percent": 32.7
+        },
+        "fs": [
+          {
+            "device_name": "/dev/sda2",
+            "fs_type": "btrfs",
+            "mnt_point": "/",
+            "size": 103079215104,
+            "used": 41875931136,
+            "free": 61203283968,
+            "percent": 40.6
+          },
+          {
+            "device_name": "/dev/sdb1",
+            "fs_type": "ext4",
+            "mnt_point": "/var/lib/docker",
+            "size": 536870912000,
+            "used": 418759311360,
+            "free": 118111600640,
+            "percent": 78
+          }
+        ]
+      }
+    },
+    {
+      "name": "db1",
+      "lastPollMs": 1792420051000,
+      "lastOkMs": 1792420051000,
+      "error": null,
+      "snapshot": {
+        "system": {
+          "hostname": "db1"
+        },
+        "cpu": {
+          "total": 71.3,
+          "cpucore": 16
+        },
+        "load": {
+          "min1": 6.84,
+          "min5": 5.91,
+          "min15": 5.2,
+          "cpucore": 16
+        },
+        "mem": {
+          "total": 67430986547,
+          "used": 62062277427,
+          "available": 5368709120,
+          "percent": 92
+        },
+        "fs": [
+          {
+            "device_name": "/dev/nvme0n1p2",
+            "fs_type": "ext4",
+            "mnt_point": "/",
+            "size": 103079215104,
+            "used": 23622320128,
+            "free": 79456894976,
+            "percent": 22.9
+          },
+          {
+            "device_name": "/dev/mapper/data",
+            "fs_type": "xfs",
+            "mnt_point": "/data",
+            "size": 2089072092774,
+            "used": 1968125813719,
+            "free": 120946279055,
+            "percent": 94.2
+          }
+        ]
+      }
+    },
+    {
+      "name": "nas",
+      "lastPollMs": 1792420051000,
+      "lastOkMs": 1792419979000,
+      "error": null,
+      "snapshot": {
+        "system": {
+          "hostname": "nas"
+        },
+        "cpu": {
+          "total": 4,
+          "cpucore": 4
+        },
+        "load": {
+          "min1": 0.12,
+          "min5": 0.1,
+          "min15": 0.09,
+          "cpucore": 4
+        },
+        "mem": {
+          "total": 8589934592,
+          "used": 2576980378,
+          "available": 6012954214,
+          "percent": 30
+        },
+        "fs": [
+          {
+            "device_name": "/dev/sda1",
+            "fs_type": "ext4",
+            "mnt_point": "/",
+            "size": 268435456000,
+            "used": 144955146240,
+            "free": 123480309760,
+            "percent": 54
+          },
+          {
+            "device_name": "/dev/md0",
+            "fs_type": "ext4",
+            "mnt_point": "/srv/media",
+            "size": 3958241859994,
+            "used": 3188583720550,
+            "free": 769658139444,
+            "percent": 80.6
+          }
+        ]
+      }
+    },
+    {
+      "name": "build",
+      "lastPollMs": 1792420051000,
+      "lastOkMs": 0,
+      "error": {
+        "kind": "glances-missing",
+        "message": "bash: line 1: glances: command not found"
+      },
+      "snapshot": null
+    },
+    {
+      "name": "backup",
+      "lastPollMs": 1792420051000,
+      "lastOkMs": 1792418530000,
+      "error": {
+        "kind": "ssh",
+        "message": "ssh: connect to host backup port 22: No route to host"
+      },
+      "snapshot": null
+    },
+    {
+      "name": "staging",
+      "lastPollMs": 0,
+      "lastOkMs": 0,
+      "error": null,
+      "snapshot": null
+    }
+  ]
+}

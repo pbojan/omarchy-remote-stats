@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "pbojan.remote-stats",
+  "name": "Remote Stats",
+  "version": "1.0.0",
+  "author": "Bojan Petkovski",
+  "license": "MIT",
+  "description": "Keep an eye on your servers from the Omarchy bar: load, CPU, memory and disks at a glance.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "service": "src/Service.qml",
+    "barWidget": "src/Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Remote Stats",
+    "description": "One bar icon for all servers, with a panel that lists each server's load, CPU, memory and disks.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

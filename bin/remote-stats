@@ -1,0 +1,253 @@
+#!/usr/bin/env bash
+#
+# Remote Stats command line.
+#
+#   remote-stats setup  user@host[:port]          install the Remote Stats key on the server
+#   remote-stats add    user@host[:port] [name]   add the server to the panel
+#   remote-stats remove user@host[:port]          undo both
+#   remote-stats config [<setting> <value>]       show or change a setting
+#
+# The work on the server is in server/setup.sh and server/remove.sh.
+# This script sends them over SSH; nothing is copied to the server.
+
+set -euo pipefail
+
+# The defaults and the key-only options are also in src/logic/Config.js and
+# src/logic/Poll.js; test/cli.test.sh checks that they match.
+key="$HOME/.ssh/remote_stats_ed25519"
+# shellcheck disable=SC2088  # a literal ~: the plugin expands it
+key_in_config="~/.ssh/remote_stats_ed25519"
+default_config='{"version": 1, "settings": {"interval": 30, "showDisks": true}, "servers": []}'
+min_interval=5
+# Log in with the Remote Stats key only: no ~/.ssh/config, no agent (ADR-005).
+key_only_options=(-F none -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes)
+# Where the plugin's polls keep their shared connections (ADR-006), as in
+# src/Service.qml.
+control_dir="${XDG_RUNTIME_DIR:-}/remote-stats"
+
+config_file="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/remote-stats/config.json"
+server_dir="$(dirname "$(readlink -f "$0")")/../server"
+
+
+usage() {
+  cat <<EOF
+Usage:
+  remote-stats setup  user@host[:port]          Install the Remote Stats key on the server
+  remote-stats add    user@host[:port] [name]   Add the server to the panel, named after the host by default
+  remote-stats remove user@host[:port]          Remove the key from the server and the server from the panel
+  remote-stats config                           Show the settings
+  remote-stats config interval <seconds>        Poll the servers every <seconds>, at least 5
+  remote-stats config showDisks true|false      Show or hide the disks in the panel
+EOF
+}
+
+fail() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+make_config() {
+  mkdir -p "$(dirname "$config_file")"
+  [[ -f "$config_file" ]] || echo "$default_config" > "$config_file"
+}
+
+# Asks a yes/no question, with No as the default. In a terminal it shows
+# Omarchy's Yes/No buttons (gum, as `omarchy update` uses); with piped input
+# it reads a plain y or n.
+confirm() {
+  local question="$1"
+  local answer=""
+
+  if [[ -t 0 ]]; then
+    gum confirm --default=false "$question"
+    return
+  fi
+
+  read -r -p "$question [y/N] " answer || true
+  [[ "$answer" == [yY]* ]]
+}
+
+# Runs a jq filter on the config file and saves the result.
+change_config() {
+  jq "$@" "$config_file" > "$config_file.new"
+  mv "$config_file.new" "$config_file"
+}
+
+
+# The key without its comment: "ssh-ed25519 AAAA...". The second word alone
+# identifies the key's line on the server.
+key_type_and_value() {
+  cut -d " " -f 1,2 "$key.pub"
+}
+
+key_value() {
+  cut -d " " -f 2 "$key.pub"
+}
+
+# sshd reads authorized_keys once per connection, and the plugin's polls
+# share one connection per server (ADR-006). Closing it makes the next poll
+# log in again: with the new forced command after setup, refused after
+# remove. Nothing to do when no connection is open.
+close_connection() {
+  ssh "${key_only_options[@]}" -o ControlPath="$control_dir/%C" -O exit -- "ssh://$1" 2> /dev/null || true
+}
+
+
+setup() {
+  local target="$1"
+  local shown_key="${key/#$HOME/\~}"
+  local key_step="Use the Remote Stats key $shown_key."
+
+  if [[ ! -f "$key" ]]; then
+    key_step="Create the Remote Stats key $shown_key, without a passphrase."
+  fi
+
+  # Say what will happen before anything happens: this logs in to the
+  # server and changes its authorized_keys.
+  gum style --border normal --padding "1 2" --width 78 \
+    "Set up $target for Remote Stats:" \
+    "" \
+    "1. $key_step" \
+    "2. Log in with your normal SSH login. SSH may ask for your password." \
+    "3. Look for Glances on the server." \
+    "4. Back up ~/.ssh/authorized_keys, then let the Remote Stats key run ONE command: the Glances snapshot. No shell, no terminal, no forwarding." \
+    "5. Log in with the Remote Stats key only and check that a snapshot comes back." \
+    "" \
+    "Nothing else changes on the server."
+  echo
+
+  if ! confirm "Continue?"; then
+    echo "Nothing changed."
+    return
+  fi
+
+  if [[ ! -f "$key" ]]; then
+    ssh-keygen -q -t ed25519 -N "" -C "remote-stats@$(hostname)" -f "$key"
+    echo "Created the Remote Stats key: $key"
+  fi
+
+  # ssh reads user@host:port only as a URL.
+  echo "Installing the Remote Stats key on $target. SSH may ask for your password."
+  # shellcheck disable=SC2046  # the key type and value are two arguments
+  ssh -- "ssh://$target" sh -s -- $(key_type_and_value) < "$server_dir/setup.sh" \
+    || fail "Setup on $target failed."
+  close_connection "$target"
+
+  # Log in the way the plugin will: with the Remote Stats key only, no
+  # ~/.ssh/config, no agent. The server must answer with one Glances
+  # snapshot: one line of JSON.
+  echo "Testing the Remote Stats key..."
+  local answer
+  answer="$(ssh "${key_only_options[@]}" -T -i "$key" \
+    -o StrictHostKeyChecking=accept-new -- "ssh://$target" < /dev/null)" \
+    || fail "Could not log in to $target with $key."
+
+  if ! jq -e ".cpu" <<< "$answer" > /dev/null 2>&1; then
+    echo "$target answered with:" >&2
+    head -n 5 <<< "$answer" | cut -c 1-200 >&2
+    fail "This is not a Glances snapshot."
+  fi
+
+  echo "Done. Add the server to the panel: remote-stats add $target"
+}
+
+
+# The host part of a target: "deploy@[fe80::1]:22" -> "fe80::1". The
+# panel names a new server the same way (Target.effectiveName).
+host_of() {
+  local host="${1##*@}"
+
+  if [[ "$host" == \[* ]]; then
+    host="${host#[}"
+    echo "${host%%]*}"
+  else
+    echo "${host%%:*}"
+  fi
+}
+
+
+add() {
+  local target="$1"
+  local name="${2:-$(host_of "$1")}"
+
+  make_config
+
+  if jq -e --arg name "$name" 'any(.servers[]; .name == $name)' "$config_file" > /dev/null; then
+    fail "$name is already in $config_file."
+  fi
+
+  change_config --arg name "$name" --arg target "$target" --arg key "$key_in_config" \
+    '.servers += [{name: $name, target: $target, key: $key}]'
+
+  echo "Added $name to $config_file"
+}
+
+
+remove() {
+  local target="$1"
+
+  if ! confirm "Remove the Remote Stats key from $target and the server from the panel?"; then
+    echo "Nothing changed."
+    return
+  fi
+
+  if [[ -f "$key.pub" ]]; then
+    echo "Removing the Remote Stats key from $target. SSH may ask for your password."
+    ssh -- "ssh://$target" sh -s -- "$(key_value)" < "$server_dir/remove.sh" \
+      || echo "Warning: could not reach $target. The key line is still on the server." >&2
+  fi
+  # After the key line is gone, so a poll cannot log in again in between.
+  close_connection "$target"
+
+  if [[ -f "$config_file" ]] && jq -e --arg target "$target" 'any(.servers[]; .target == $target)' "$config_file" > /dev/null; then
+    change_config --arg target "$target" 'del(.servers[] | select(.target == $target))'
+    echo "Removed $target from $config_file"
+  else
+    echo "Warning: no server in $config_file has the target $target. Use the target from remote-stats add." >&2
+  fi
+}
+
+
+config() {
+  local setting="${1:-}"
+  local value="${2:-}"
+
+  make_config
+
+  if [[ -z "$setting" ]]; then
+    jq '.settings' "$config_file"
+    return
+  fi
+
+  case "$setting" in
+    interval)
+      # A snapshot takes about 2.5 s, so a shorter interval would overlap polls.
+      if [[ ! "$value" =~ ^[0-9]+$ ]] || (( value < min_interval )); then
+        fail "The interval must be a whole number of seconds, at least $min_interval."
+      fi
+      value=$((10#$value))   # "030" is not valid JSON; 30 is
+      ;;
+    showDisks)
+      if [[ "$value" != true && "$value" != false ]]; then
+        fail "showDisks must be true or false."
+      fi
+      ;;
+    *)
+      fail "Unknown setting: $setting. The settings are interval and showDisks."
+      ;;
+  esac
+
+  # Both values are JSON as typed: a number, or true or false.
+  change_config --arg setting "$setting" --argjson value "$value" '.settings[$setting] = $value'
+
+  echo "Set $setting to $value. The panel uses it within about 1 s."
+}
+
+
+case "${1:-}" in
+  setup)    [[ $# -eq 2 ]] || { usage; exit 2; }; setup "$2" ;;
+  add)      [[ $# -eq 2 || $# -eq 3 ]] || { usage; exit 2; }; add "$2" "${3:-}" ;;
+  remove)   [[ $# -eq 2 ]] || { usage; exit 2; }; remove "$2" ;;
+  config)   [[ $# -eq 1 || $# -eq 3 ]] || { usage; exit 2; }; config "${2:-}" "${3:-}" ;;
+  *)        usage ;;
+esac

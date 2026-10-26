@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#
+# Runs every test: the Node tests of src/logic/*.js, then the command line and the
+# service against a throwaway sshd (cli.test.sh). Run: test/run
+
+set -euo pipefail
+cd "$(dirname "$0")"
+
+for test in *.test.js; do
+  node "$test"
+done
+
+./cli.test.sh
