@@ -7,6 +7,8 @@ The plugin reads the data over SSH from
 [Glances](https://github.com/nicolargo/glances). Nothing else runs on the
 server.
 
+![The Remote Stats panel with eight servers: connected, critical, stale, issue, offline and connecting](preview.png)
+
 ## Requirements
 
 On your Omarchy machine (a default install has all of it):
