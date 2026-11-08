@@ -48,7 +48,7 @@ echo "Found Glances: $glances_path"
 
 # The same arguments as GLANCES_ARGS in src/logic/Poll.js; test/cli.test.sh
 #    checks that they match.
-glances_args="--disable-plugin all --enable-plugin system,cpu,mem,load,fs --stdout-json system,cpu,mem,load,fs"
+glances_args="--disable-check-update --disable-plugin all --enable-plugin system,cpu,mem,load,fs --stdout-json system,cpu,mem,load,fs"
 snapshot="$glances_path $glances_args"
 key_line="restrict,command=\"$snapshot\" $key_type $key remote-stats"
 

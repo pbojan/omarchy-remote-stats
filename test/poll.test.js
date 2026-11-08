@@ -26,6 +26,14 @@ assert.ok(!fresh.some((a) => a.startsWith('ControlMaster') || a.startsWith('Cont
 assert.equal(Poll.parseSnapshot(JSON.stringify(snapshot)).cpu.total, 12)
 assert.equal(Poll.parseSnapshot('Web console: https://mini:9090/'), null)
 assert.equal(Poll.parseSnapshot('{"mem": {}}'), null)
+// Glances 4.5.8 prints an upgrade notice after the snapshot when it was not
+// started with --disable-check-update.
+const notice = JSON.stringify(snapshot) + '\n' +
+  'You are using Glances version 4.5.8, however version 4.5.9 is available.\n' +
+  'You should consider upgrading using: pip install --upgrade glances\n'
+assert.equal(Poll.parseSnapshot(notice).cpu.total, 12)
+assert.equal(Poll.result(null, 0, notice, '', 1000).error, null)
+assert.ok(Poll.GLANCES_ARGS.includes('--disable-check-update'))
 assert.equal(Poll.lastLine('one\ntwo\n'), 'two')
 
 // A good poll.

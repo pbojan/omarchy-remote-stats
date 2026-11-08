@@ -17,7 +17,10 @@ Glances 4.5.8 and psutil 7.2.2. Timings come from GNU `time` 1.10.
 
 ## Behaviour of each output mode
 
-- **`--stdout-json <plugins>`** prints one JSON line and exits.
+- **`--stdout-json <plugins>`** prints one JSON line and exits. When PyPI
+  has a newer Glances, it prints a four-line upgrade notice on stdout after
+  the JSON line, and still exits with 0 (seen on 2026-11-08: 4.5.8, with
+  4.5.9 out). `--disable-check-update` stops the check and the notice.
   `--stop-after` has no effect. A snapshot with system, cpu, mem, load and fs
   is 1,775 bytes. Field selection such as `cpu.total` prints `{}`.
 - **`--stdout <plugins or fields>`** streams one `name: value` line per stat

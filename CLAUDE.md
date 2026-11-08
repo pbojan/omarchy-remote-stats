@@ -116,6 +116,13 @@ Use one word per concept, in code and docs:
   - `fixtures/servers.json`: poll results for the Node tests only; the
     plugin has no mock mode.
 - `docs/`: requirements, ADRs and research.
+- `CHANGELOG.md`: one section per version, newest first. Users see it in
+  the diff of `omarchy plugin update`, which pulls master; there are no
+  GitHub releases or tags. Each change that reaches master gets an entry
+  and a new `version` in `manifest.json` (patch for fixes, minor for
+  features). Add an **Action needed** list when users must do something,
+  such as run `remote-stats setup` again. `test/run` checks that the two
+  versions match.
 
 ## Development
 

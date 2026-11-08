@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "pbojan.remote-stats",
   "name": "Remote Stats",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Bojan Petkovski",
   "license": "MIT",
   "description": "Keep an eye on your servers from the Omarchy bar: load, CPU, memory and disks at a glance.",

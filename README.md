@@ -37,6 +37,9 @@ To update the plugin later:
 omarchy plugin update pbojan.remote-stats
 ```
 
+Then read the new part of [CHANGELOG.md](CHANGELOG.md). Its **Action
+needed** lines list what to do on your servers.
+
 ## Helper
 
 The `remote-stats` command sets up your servers and changes the settings.
@@ -224,7 +227,7 @@ the panel polls it at once.
    ```
    GLANCES=/usr/bin/glances
    ssh deploy@192.168.2.20 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys' <<EOF
-   restrict,command="$GLANCES --disable-plugin all --enable-plugin system,cpu,mem,load,fs --stdout-json system,cpu,mem,load,fs" $(cat ~/.ssh/remote_stats_ed25519.pub)
+   restrict,command="$GLANCES --disable-check-update --disable-plugin all --enable-plugin system,cpu,mem,load,fs --stdout-json system,cpu,mem,load,fs" $(cat ~/.ssh/remote_stats_ed25519.pub)
    EOF
    ```
 

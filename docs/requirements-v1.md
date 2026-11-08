@@ -87,7 +87,8 @@ Critical.
       -o ControlPath=$XDG_RUNTIME_DIR/remote-stats/%C \
       -o ServerAliveInterval=15 -o ServerAliveCountMax=2 \
       -- ssh://<user>@<host>:<port> \
-      glances --disable-plugin all --enable-plugin system,cpu,mem,load,fs \
+      glances --disable-check-update \
+      --disable-plugin all --enable-plugin system,cpu,mem,load,fs \
       --stdout-json system,cpu,mem,load,fs
   ```
 

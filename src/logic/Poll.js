@@ -29,7 +29,10 @@ var KEY_ONLY_OPTIONS = ["-F", "none", "-o", "IdentitiesOnly=yes", "-o", "Identit
 
 // The server's forced command runs Glances with these arguments
 // (server/setup.sh); test/cli.test.sh checks that they match.
+// --disable-check-update: without it, Glances asks PyPI for a newer version
+// and prints a notice on stdout after the snapshot.
 var GLANCES_ARGS = [
+  "--disable-check-update",
   "--disable-plugin", "all", "--enable-plugin", "system,cpu,mem,load,fs",
   "--stdout-json", "system,cpu,mem,load,fs"
 ]
@@ -58,10 +61,13 @@ function command(entry, home, controlDir) {
   ], GLANCES_ARGS)
 }
 
-// The snapshot from a poll's stdout, or null when it is not one.
+// The snapshot from a poll's stdout, or null when it is not one. The
+// snapshot is the first line. Glances may print more after it, such as a
+// notice about a newer version on a server set up without
+// --disable-check-update.
 function parseSnapshot(stdout) {
   var snapshot
-  try { snapshot = JSON.parse(stdout) } catch (e) { return null }
+  try { snapshot = JSON.parse(String(stdout || "").split("\n")[0]) } catch (e) { return null }
   return snapshot && snapshot.cpu ? snapshot : null
 }
 

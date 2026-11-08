@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 #
-# Runs every test: the Node tests of src/logic/*.js, then the command line and the
-# service against a throwaway sshd (cli.test.sh). Run: test/run
+# Runs every test: the version check, the Node tests of src/logic/*.js, then
+# the command line and the service against a throwaway sshd (cli.test.sh).
+# Run: test/run
 
 set -euo pipefail
 cd "$(dirname "$0")"
+
+# The version in manifest.json is the newest one in CHANGELOG.md.
+version="$(jq -r .version ../manifest.json)"
+newest="$(grep -m 1 '^## ' ../CHANGELOG.md | cut -d ' ' -f 2)"
+if [[ "$version" != "$newest" ]]; then
+  echo "manifest.json has version $version, but the newest in CHANGELOG.md is $newest" >&2
+  exit 1
+fi
+echo "version check passed"
 
 for test in *.test.js; do
   node "$test"
